@@ -1,9 +1,10 @@
+"""Homework Bot."""
 import logging
 import os
 import sys
 import time
-import requests
 from http import HTTPStatus
+import requests
 
 import telegram
 from dotenv import load_dotenv
@@ -16,14 +17,14 @@ from exceptions import (
 load_dotenv()
 
 
-PRACTICUM_TOKEN = os.getenv("PRAKTIKUM_TOKEN")
+PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s, %(levelname)s, %(message)s",
     stream=logging.StreamHandler(sys.stdout),
+    format="%(asctime)s, %(levelname)s, %(message)s",
 )
 
 
@@ -40,7 +41,7 @@ HOMEWORK_VERDICTS: dict[str, str] = {
 
 
 def check_tokens() -> bool:
-    """This function is checking the availability of environment variables"""
+    """Check the availability of environment variables."""
     variable_data: dict[str, str] = {
         "PRACTICUM_TOKEN": PRACTICUM_TOKEN,
         "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
@@ -61,7 +62,7 @@ def check_tokens() -> bool:
 
 
 def send_message(bot, message) -> None:
-    """This function is sending the message to Telegram."""
+    """Send the message to Telegram."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"{message}")
     except telegram.TelegramError as error:
@@ -71,7 +72,7 @@ def send_message(bot, message) -> None:
 
 
 def get_api_answer(timestamp):
-    """This function makes a request to the endpoint of the APi-service."""
+    """Make a request to the endpoint of the APi-service."""
     try:
         homework_statuses = requests.get(
             url=ENDPOINT, headers=HEADERS, params={"from_date": timestamp}
@@ -91,7 +92,7 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
-    """This function checks the response to the APi-service."""
+    """Check the response to the APi-service."""
     if not isinstance(response, dict):
         raise TypeError("Ответ сервера не является словарём!")
     if "homeworks" not in response:
@@ -104,8 +105,8 @@ def check_response(response):
     return homework_statuses
 
 
-def parse_status(homework):
-    """This function extracts the status from homework information"""
+def parse_status(homework) -> str:
+    """Extract the status from homework information."""
     if "homework_name" not in homework:
         raise KeyError("Ключа 'homework_name' не найдено.")
     homework_name = homework.get("homework_name")
@@ -119,7 +120,7 @@ def parse_status(homework):
 
 
 def main():
-    """The main logic of the bot's work."""
+    """Bot work base logic."""
     try:
         check_tokens()
     except MissingEnvoirmentVariablesException:
