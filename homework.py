@@ -4,14 +4,16 @@ import os
 import sys
 import time
 from http import HTTPStatus
-import requests
 
 import telegram
+import requests
 from dotenv import load_dotenv
 
 from exceptions import (
     EndpointErrorException,
     MissingEnvoirmentVariablesException,
+    TelegramErrorException,
+    JsonErrorException,
 )
 
 load_dotenv()
@@ -20,12 +22,6 @@ load_dotenv()
 PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    stream=logging.StreamHandler(sys.stdout),
-    format="%(asctime)s, %(levelname)s, %(message)s",
-)
 
 
 RETRY_PERIOD = 600
@@ -42,23 +38,7 @@ HOMEWORK_VERDICTS: dict[str, str] = {
 
 def check_tokens() -> bool:
     """Check the availability of environment variables."""
-    variable_data: dict[str, str] = {
-        "PRACTICUM_TOKEN": PRACTICUM_TOKEN,
-        "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
-        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
-    }
-    values_not_none: list[str] = [
-        variable_name
-        for variable_name, value in variable_data.items()
-        if not value
-    ]
-    if values_not_none:
-        logging.critical(
-            f"Переменная окружения недоступна {values_not_none}."
-            "Программа будет принудительно остановлена"
-        )
-        sys.exit(1)
-    logging.info("переменные окружения доступны.")
+    return all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
 
 
 def send_message(bot, message) -> None:
@@ -67,28 +47,33 @@ def send_message(bot, message) -> None:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"{message}")
     except telegram.TelegramError as error:
         logging.error(f"Не удается отправить сообщение: {error}")
-        raise telegram.TelegramError from error
+        raise TelegramErrorException from error
     logging.debug(f"Отправлено сообщение в чат: {message}")
 
 
 def get_api_answer(timestamp):
     """Make a request to the endpoint of the APi-service."""
+    if not ENDPOINT:
+        raise EndpointErrorException(
+            "Отсутствует доступ к сервису Яндекс.Домашка!"
+        )
+
     try:
         homework_statuses = requests.get(
             url=ENDPOINT, headers=HEADERS, params={"from_date": timestamp}
         )
     except requests.RequestException:
         raise ("Ошибка в запросе, адрес неверен!")
-    if not ENDPOINT:
-        raise EndpointErrorException(
-            "Отсутствует доступ к сервису Яндекс.Домашка!"
-        )
+
     if homework_statuses.status_code != HTTPStatus.OK:
         raise ValueError(
             f"Ответ страницы: {homework_statuses.status_code},"
             "проверьте параметры запроса."
         )
-    return homework_statuses.json()
+    try:
+        return homework_statuses.json()
+    except JsonErrorException:
+        logging.error('Сервер вернул невалидный json')
 
 
 def check_response(response):
@@ -121,10 +106,12 @@ def parse_status(homework) -> str:
 
 def main():
     """Bot work base logic."""
-    try:
-        check_tokens()
-    except MissingEnvoirmentVariablesException:
-        sys.exit(1)
+    if not check_tokens():
+        logging.critical("Отсутствует переменная окружения")
+        sys.exit(MissingEnvoirmentVariablesException(
+            "Отсутствует переменная окружения"
+        ))
+
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     response_current_time = int(time.time())
@@ -140,20 +127,21 @@ def main():
                 old_homework = homework[0]
                 message = parse_status(old_homework)
                 send_message(bot, message)
-        except (
-            EndpointErrorException,
-            MissingEnvoirmentVariablesException,
-            telegram.TelegramError,
-        ):
-            pass
 
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
-            logging.critical(message)
+            logging.error(message)
+            send_message(bot, message)
+
         finally:
             time.sleep(RETRY_PERIOD)
             timestamp = response_current_time
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        stream=logging.StreamHandler(sys.stdout),
+        format="%(asctime)s, %(levelname)s, %(message)s",
+    )
     main()
