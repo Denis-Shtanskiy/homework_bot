@@ -1,4 +1,5 @@
 """Homework Bot."""
+import json
 import logging
 import os
 import sys
@@ -11,9 +12,10 @@ from dotenv import load_dotenv
 
 from exceptions import (
     EndpointErrorException,
+    JsonErrorException,
     MissingEnvoirmentVariablesException,
     TelegramErrorException,
-    JsonErrorException,
+    RequestErrorException,
 )
 
 load_dotenv()
@@ -45,9 +47,9 @@ def send_message(bot, message) -> None:
     """Send the message to Telegram."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"{message}")
-    except telegram.TelegramError as error:
-        logging.error(f"Не удается отправить сообщение: {error}")
-        raise TelegramErrorException from error
+    except telegram.TelegramError as telegram_error:
+        logging.error(f"Не удается отправить сообщение: {telegram_error}")
+        raise TelegramErrorException from telegram_error
     logging.debug(f"Отправлено сообщение в чат: {message}")
 
 
@@ -62,8 +64,11 @@ def get_api_answer(timestamp):
         homework_statuses = requests.get(
             url=ENDPOINT, headers=HEADERS, params={"from_date": timestamp}
         )
-    except requests.RequestException:
-        raise ("Ошибка в запросе, адрес неверен!")
+    except requests.RequestException as request_error:
+        logging.error(f"Ошибка в запросе, адрес неверен! {request_error}")
+        raise RequestErrorException(
+            f"Ошибка в запросе, адрес неверен!"
+        ) from request_error
 
     if homework_statuses.status_code != HTTPStatus.OK:
         raise ValueError(
@@ -72,8 +77,11 @@ def get_api_answer(timestamp):
         )
     try:
         return homework_statuses.json()
-    except JsonErrorException:
-        logging.error('Сервер вернул невалидный json')
+    except json.JSONDecodeError as json_error:
+        logging.error("Сервер вернул невалидный json")
+        raise JsonErrorException(
+            f"Сервер вернул невалидный json"
+        ) from json_error
 
 
 def check_response(response):
@@ -117,15 +125,16 @@ def main():
     response_current_time = int(time.time())
 
     response_current_time = timestamp
+    message = ""
 
     while True:
         try:
             response = get_api_answer(timestamp)
-            check_response(response)
-            homework = response.get("homeworks")
-            if homework:
-                old_homework = homework[0]
-                message = parse_status(old_homework)
+            homework = check_response(response)
+            old_homework = homework[0]
+            new_message = parse_status(old_homework)
+            if homework and (message != new_message):
+                message = new_message
                 send_message(bot, message)
 
         except Exception as error:
