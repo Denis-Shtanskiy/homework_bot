@@ -132,7 +132,6 @@ def main():
             response_current_time = response.get("current_date")
 
         except (
-            TelegramErrorException,
             EndpointErrorException,
             RequestErrorException,
             JsonErrorException,
