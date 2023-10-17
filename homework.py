@@ -20,16 +20,14 @@ from exceptions import (
 
 load_dotenv()
 
-
 PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-
+TIME_DELTA = 160000
 RETRY_PERIOD = 600
 ENDPOINT = "https://practicum.yandex.ru/api/user_api/homework_statuses/"
 HEADERS: dict[str, str] = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
-
 
 HOMEWORK_VERDICTS: dict[str, str] = {
     "approved": "Работа проверена: ревьюеру всё понравилось. Ура!",
@@ -121,10 +119,9 @@ def main():
         ))
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time())
+    timestamp = int(time.time()) - TIME_DELTA
     response_current_time = int(time.time())
 
-    response_current_time = timestamp
     message = ""
 
     while True:
@@ -136,6 +133,15 @@ def main():
             if homework and (message != new_message):
                 message = new_message
                 send_message(bot, message)
+            response_current_time = response.get("cuurent_date")
+
+        except (
+            TelegramErrorException,
+            EndpointErrorException,
+            RequestErrorException,
+            JsonErrorException,
+        ):
+            pass
 
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
