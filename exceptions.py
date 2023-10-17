@@ -11,11 +11,6 @@ class MissingEnvoirmentVariablesException(Exception):
     pass
 
 
-class TelegramErrorException(Exception):
-    """An exception checks telegram error."""
-    pass
-
-
 class JsonErrorException(Exception):
     """An exception checks decode json."""
     pass

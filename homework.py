@@ -14,7 +14,6 @@ from exceptions import (
     EndpointErrorException,
     JsonErrorException,
     MissingEnvoirmentVariablesException,
-    TelegramErrorException,
     RequestErrorException,
 )
 
@@ -24,7 +23,7 @@ PRACTICUM_TOKEN = os.getenv("PRACTICUM_TOKEN")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-TIME_DELTA = 160000
+TIME_DELTA = 604800
 RETRY_PERIOD = 600
 ENDPOINT = "https://practicum.yandex.ru/api/user_api/homework_statuses/"
 HEADERS: dict[str, str] = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
@@ -47,7 +46,6 @@ def send_message(bot, message) -> None:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"{message}")
     except telegram.TelegramError as telegram_error:
         logging.error(f"Не удается отправить сообщение: {telegram_error}")
-        raise TelegramErrorException from telegram_error
     logging.debug(f"Отправлено сообщение в чат: {message}")
 
 
@@ -121,18 +119,16 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time()) - TIME_DELTA
     response_current_time = int(time.time())
-
-    message = ""
+    new_message = ""
 
     while True:
         try:
             response = get_api_answer(timestamp)
             homework = check_response(response)
-            old_homework = homework[0]
-            new_message = parse_status(old_homework)
-            if homework and (message != new_message):
-                message = new_message
-                send_message(bot, message)
+            if homework:
+                message = parse_status(homework[0])
+            else:
+                message = "Обновлений нет"
             response_current_time = response.get("current_date")
 
         except (
@@ -146,9 +142,11 @@ def main():
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
             logging.error(message)
-            send_message(bot, message)
 
         finally:
+            if message != new_message:
+                send_message(bot, message)
+                new_message = message
             time.sleep(RETRY_PERIOD)
             timestamp = response_current_time
 
