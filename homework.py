@@ -65,7 +65,7 @@ def get_api_answer(timestamp):
     except requests.RequestException as request_error:
         logging.error(f"Ошибка в запросе, адрес неверен! {request_error}")
         raise RequestErrorException(
-            f"Ошибка в запросе, адрес неверен!"
+            "Ошибка в запросе, адрес неверен!"
         ) from request_error
 
     if homework_statuses.status_code != HTTPStatus.OK:
@@ -78,7 +78,7 @@ def get_api_answer(timestamp):
     except json.JSONDecodeError as json_error:
         logging.error("Сервер вернул невалидный json")
         raise JsonErrorException(
-            f"Сервер вернул невалидный json"
+            "Сервер вернул невалидный json"
         ) from json_error
 
 
