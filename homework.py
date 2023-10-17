@@ -133,7 +133,7 @@ def main():
             if homework and (message != new_message):
                 message = new_message
                 send_message(bot, message)
-            response_current_time = response.get("cuurent_date")
+            response_current_time = response.get("current_date")
 
         except (
             TelegramErrorException,
