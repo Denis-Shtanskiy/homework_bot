@@ -19,3 +19,8 @@ class JsonErrorException(Exception):
 class RequestErrorException(Exception):
     """Error request"""
     pass
+
+
+class TelegramErrorException(Exception):
+    """An exception checks telegram error."""
+    pass

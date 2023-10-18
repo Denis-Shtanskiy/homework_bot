@@ -15,6 +15,7 @@ from exceptions import (
     JsonErrorException,
     MissingEnvoirmentVariablesException,
     RequestErrorException,
+    TelegramErrorException,
 )
 
 load_dotenv()
@@ -46,6 +47,7 @@ def send_message(bot, message) -> None:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"{message}")
     except telegram.TelegramError as telegram_error:
         logging.error(f"Не удается отправить сообщение: {telegram_error}")
+        raise TelegramErrorException from telegram_error
     logging.debug(f"Отправлено сообщение в чат: {message}")
 
 
@@ -132,9 +134,7 @@ def main():
             response_current_time = response.get("current_date")
 
         except (
-            EndpointErrorException,
-            RequestErrorException,
-            JsonErrorException,
+            TelegramErrorException,
         ):
             pass
 
