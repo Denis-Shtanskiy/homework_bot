@@ -45,9 +45,9 @@ def send_message(bot, message) -> None:
     """Send the message to Telegram."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"{message}")
-    except telegram.TelegramError as telegram_error:
-        logging.error(f"Не удается отправить сообщение: {telegram_error}")
-        raise TelegramErrorException from telegram_error
+    except telegram.TelegramError as error:
+        logging.error(f"Не удается отправить сообщение: {error}")
+        raise TelegramErrorException from error
     logging.debug(f"Отправлено сообщение в чат: {message}")
 
 
@@ -125,6 +125,7 @@ def main():
 
     while True:
         try:
+            send_message(bot, "Бот начал работу")
             response = get_api_answer(timestamp)
             homework = check_response(response)
             if homework:
@@ -132,6 +133,10 @@ def main():
             else:
                 message = "Обновлений нет"
             response_current_time = response.get("current_date")
+            if message != new_message:
+                send_message(bot, message)
+            logging.info(message)
+            new_message = message
 
         except (
             TelegramErrorException,
@@ -139,13 +144,16 @@ def main():
             pass
 
         except Exception as error:
-            message = f"Сбой в работе программы: {error}"
-            logging.error(message)
+            try:
+                message = f"Сбой в работе программы: {error}"
+                if message != new_message:
+                    send_message(bot, message)
+                logging.error(message)
+                new_message = message
+            except TelegramErrorException:
+                pass
 
         finally:
-            if message != new_message:
-                send_message(bot, message)
-                new_message = message
             time.sleep(RETRY_PERIOD)
             timestamp = response_current_time
 
