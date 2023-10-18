@@ -1,6 +1,7 @@
 """Homework Bot."""
 import json
 import logging
+from operator import ne
 import os
 import sys
 import time
@@ -115,7 +116,6 @@ def check_message(message, new_message, bot):
     try:
         if message != new_message:
             send_message(bot, message)
-        new_message = message
     except TelegramErrorException:
         pass
 
@@ -131,11 +131,11 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time()) - TIME_DELTA
     response_current_time = int(time.time())
-    new_message = ""
+    new_message = "Бот начал работу"
 
     while True:
         try:
-            send_message(bot, "Бот начал работу")
+            send_message(bot, new_message)
             response = get_api_answer(timestamp)
             homework = check_response(response)
             if homework:
@@ -145,6 +145,7 @@ def main():
             response_current_time = response.get("current_date")
             check_message(message, new_message, bot)
             logging.info(message)
+            new_message = message
 
         except (
             TelegramErrorException,
@@ -155,6 +156,7 @@ def main():
             message = f"Сбой в работе программы: {error}"
             check_message(message, new_message, bot)
             logging.error(message)
+            new_message = message
 
         finally:
             time.sleep(RETRY_PERIOD)
