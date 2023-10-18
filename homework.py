@@ -25,7 +25,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 TIME_DELTA = 604800
-RETRY_PERIOD = 6
+RETRY_PERIOD = 600
 ENDPOINT = "https://practicum.yandex.ru/api/user_api/homework_statuses/"
 HEADERS: dict[str, str] = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
