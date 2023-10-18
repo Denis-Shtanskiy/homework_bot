@@ -1,7 +1,6 @@
 """Homework Bot."""
 import json
 import logging
-from operator import ne
 import os
 import sys
 import time
