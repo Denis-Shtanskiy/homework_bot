@@ -110,6 +110,16 @@ def parse_status(homework) -> str:
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
+def check_message(message, new_message, bot):
+    """Check the message for a one-time sending."""
+    try:
+        if message != new_message:
+            send_message(bot, message)
+        new_message = message
+    except TelegramErrorException:
+        pass
+
+
 def main():
     """Bot work base logic."""
     if not check_tokens():
@@ -133,10 +143,8 @@ def main():
             else:
                 message = "Обновлений нет"
             response_current_time = response.get("current_date")
-            if message != new_message:
-                send_message(bot, message)
+            check_message(message, new_message, bot)
             logging.info(message)
-            new_message = message
 
         except (
             TelegramErrorException,
@@ -144,14 +152,9 @@ def main():
             pass
 
         except Exception as error:
-            try:
-                message = f"Сбой в работе программы: {error}"
-                if message != new_message:
-                    send_message(bot, message)
-                logging.error(message)
-                new_message = message
-            except TelegramErrorException:
-                pass
+            message = f"Сбой в работе программы: {error}"
+            check_message(message, new_message, bot)
+            logging.error(message)
 
         finally:
             time.sleep(RETRY_PERIOD)
