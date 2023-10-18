@@ -131,10 +131,11 @@ def main():
     timestamp = int(time.time()) - TIME_DELTA
     response_current_time = int(time.time())
     new_message = "Бот начал работу"
+    message = ""
 
     while True:
         try:
-            send_message(bot, new_message)
+            check_message(message, new_message, bot)
             response = get_api_answer(timestamp)
             homework = check_response(response)
             if homework:
