@@ -25,7 +25,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 TIME_DELTA = 604800
-RETRY_PERIOD = 600
+RETRY_PERIOD = 6
 ENDPOINT = "https://practicum.yandex.ru/api/user_api/homework_statuses/"
 HEADERS: dict[str, str] = {"Authorization": f"OAuth {PRACTICUM_TOKEN}"}
 
@@ -114,7 +114,7 @@ def check_message(message, new_message, bot):
     """Check the message for a one-time sending."""
     try:
         if message != new_message:
-            send_message(bot, message)
+            send_message(bot, new_message)
     except TelegramErrorException:
         pass
 
@@ -131,7 +131,7 @@ def main():
     timestamp = int(time.time()) - TIME_DELTA
     response_current_time = int(time.time())
     new_message = "Бот начал работу"
-    message = ""
+    message = "Обновлений нет"
 
     while True:
         try:
@@ -140,12 +140,10 @@ def main():
             homework = check_response(response)
             if homework:
                 message = parse_status(homework[0])
-            else:
-                message = "Обновлений нет"
-            response_current_time = response.get("current_date")
-            check_message(message, new_message, bot)
-            logging.info(message)
+            check_message(new_message, message, bot)
             new_message = message
+            logging.info(message)
+            response_current_time = response.get("current_date")
 
         except (
             TelegramErrorException,
@@ -154,9 +152,9 @@ def main():
 
         except Exception as error:
             message = f"Сбой в работе программы: {error}"
-            check_message(message, new_message, bot)
-            logging.error(message)
+            check_message(new_message, message, bot)
             new_message = message
+            logging.error(message)
 
         finally:
             time.sleep(RETRY_PERIOD)
